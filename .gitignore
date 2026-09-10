@@ -1,0 +1,25 @@
+# ---- Secrets. Never commit. -------------------------------------------------
+.env
+.env.local
+
+# ---- Virtualenv -------------------------------------------------------------
+.venv/
+__pycache__/
+*.py[cod]
+
+# ---- Cached market data (135MB, rebuilt from the API on demand) -------------
+data/
+
+# ---- Generated output and logs ----------------------------------------------
+# One sample review is committed under examples/ instead, so the repo shows
+# what it produces without carrying a new artefact every single day.
+out/
+logs/
+doctor.txt
+
+# ---- Separate projects that happen to live in this folder -------------------
+# Each has its own git repo; committing them here would create broken gitlinks.
+earning-surprise-analysis/
+kalman-pairs-trading/
+
+.DS_Store
