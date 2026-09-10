@@ -14,16 +14,18 @@ from Polygon end-of-day data:
 
 ## Install (macOS, one command)
 
-Unzip somewhere permanent — the price cache lives beside the code and you don't
+Clone somewhere permanent — the price cache lives beside the code and you don't
 want to rebuild it — then:
 
 ```bash
-cd market-review
+git clone https://github.com/Adrian1111000/market-breadth-monitor.git
+cd market-breadth-monitor
 bash setup.sh
 ```
 
 It creates a virtualenv, installs dependencies, asks for your Polygon key and
-writes it to a `chmod 600` `.env`, builds the price cache, and installs a launchd
+writes it to a `chmod 600` `.env` (gitignored, never committed — see
+`.env.example` for the shape), builds the price cache, and installs a launchd
 agent that runs the review at **06:00 local, Tuesday–Saturday** — each run
 covering the previous US session. If the Mac is asleep at 06:00 the job runs at
 the next wake.
