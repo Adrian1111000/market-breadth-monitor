@@ -785,7 +785,15 @@ def render(ctx: dict) -> str:
     data_json = json.dumps(payload, separators=(",", ":"))
     m = payload["meta"]
 
-    return f"""<title>Breadth &amp; Momentum Monitor</title>
+    # The charset declaration must come first and must be within the first 1024
+    # bytes. Without it a browser opening the file over file:// has no HTTP
+    # header to fall back on, guesses a legacy single-byte encoding, and renders
+    # every multi-byte character as mojibake -- the arrows and em dashes in the
+    # regime panel turn into "a-=" soup. Serving over HTTP hid this, because the
+    # server supplies a Content-Type the local file has no way to provide.
+    return f"""<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breadth &amp; Momentum Monitor</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>{CSS}</style>
