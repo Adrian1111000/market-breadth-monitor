@@ -166,6 +166,42 @@ target. If no cell lands close, the gap is structural rather than cosmetic — a
 different ATR period, a different index, or a different date — and no amount of
 smoothing config will close it.
 
+## What counts as a momentum stock
+
+Membership follows the reference monitor's definition, re-evaluated from
+scratch every session:
+
+    common stock + ADR (no ETFs) · close >= $5
+    · same-day dollar turnover >= $5m
+    · gain over 63 sessions >= 20%
+
+Two things about this are easy to get wrong.
+
+**The quarterly test is absolute, not a rank.** An earlier version took the top
+30% of the universe by 126-day return. A percentile always finds a top decile,
+so in a falling market it keeps reporting "leaders" that are merely falling more
+slowly. An absolute threshold empties out instead. A count that can reach zero is
+the signal, and that is the whole point of the reading.
+
+**Turnover is same-day, not a rolling average.** A 20- or 50-day average shifts
+the base by a few dozen names.
+
+There are no moving-average filters. Every threshold is env-overridable
+(`MR_MLI_MIN_PRICE`, `MR_MLI_MIN_TURNOVER`, `MR_MLI_QUARTER_LOOKBACK`,
+`MR_MLI_MIN_QUARTER_GAIN`).
+
+### The corporate-action guard
+
+Bars are cached unadjusted and split-corrected in memory from Polygon's splits
+endpoint, so a split that endpoint has not published yet shows up as a price
+cliff. On 2026-09-11 GOSS printed 0.16, 0.14, then 10.73 -- an unreported
+reverse split reading as **+7,435% in one session**. One such name in a 416-name
+equal-weight mean moved the MLI from +1.05% to +18.92%.
+
+`MLI_MAX_DAILY_MOVE` (100% by default) drops these from the aggregate and logs
+each one by name. The old `price >= $10` filter hid this class of bug by
+accident, because the affected names trade in pennies until the split lands.
+
 ## The regime signal
 
 Eight components each score −1, 0 or +1: SPY trend, QQQ trend, % > 50D, % > 20D,

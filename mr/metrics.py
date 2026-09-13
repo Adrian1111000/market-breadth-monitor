@@ -107,31 +107,48 @@ def breadth(panel: dict[str, pd.DataFrame], elig: pd.DataFrame) -> pd.DataFrame:
 # --------------------------------------------------------------------------- #
 
 def leadership(panel: dict[str, pd.DataFrame], elig: pd.DataFrame) -> pd.DataFrame:
-    """Equal-weight index of names in a confirmed leadership posture.
+    """Equal-weight index of the names in a momentum posture.
 
-    Membership (all must hold on the day):
-      price >= $10, 50-day average dollar volume >= $10m,
-      close > 50D MA, close > 200D MA, 200D MA rising over 21 sessions,
-      126-day return in the top 30% of the eligible universe.
+    Membership, re-evaluated independently on every session:
+      eligible universe (common stock + ADR, no ETFs, close >= $5)
+      · close >= MLI_MIN_PRICE
+      · same-day dollar turnover >= MLI_MIN_TURNOVER
+      · gain over MLI_QUARTER_LOOKBACK sessions >= MLI_MIN_QUARTER_GAIN
+
+    There is no state carried between days. `member` is a full date x ticker
+    matrix and each condition is evaluated per row, so the pool is rebuilt from
+    scratch every session and a name drops out the day it stops qualifying.
+
+    The quarterly-gain test is an ABSOLUTE threshold, not a percentile rank
+    within the universe. The distinction matters most exactly when the reading
+    matters most: a rank always finds a top decile, so in a falling market it
+    keeps reporting "leaders" that are merely falling more slowly, while an
+    absolute gain empties out. A count that can reach zero is the point.
     """
     close, volume = panel["close"], panel["volume"]
     ret = close.pct_change()
 
-    ma50 = close.rolling(50, min_periods=50).mean()
-    ma200 = close.rolling(200, min_periods=200).mean()
-    dollar_vol = (close * volume).rolling(50, min_periods=30).mean()
-    rs = close.pct_change(C.MLI_RS_LOOKBACK)
-    rs_pct = rs.where(elig).rank(axis=1, pct=True) * 100.0
+    turnover = close * volume
+    quarter_gain = close.pct_change(C.MLI_QUARTER_LOOKBACK) * 100.0
 
     member = (
         elig
         & (close >= C.MLI_MIN_PRICE)
-        & (dollar_vol >= C.MLI_MIN_DOLLAR_VOL)
-        & (close > ma50)
-        & (close > ma200)
-        & (ma200 > ma200.shift(C.MLI_TREND_LOOKBACK))
-        & (rs_pct >= C.MLI_RS_PERCENTILE)
+        & (turnover >= C.MLI_MIN_TURNOVER)
+        & (quarter_gain >= C.MLI_MIN_QUARTER_GAIN)
     ).fillna(False)
+
+    # Drop suspected unadjusted corporate actions before averaging. See
+    # config.MLI_MAX_DAILY_MOVE for why this guard has to exist.
+    artifact = member & (ret.abs() * 100.0 > C.MLI_MAX_DAILY_MOVE)
+    if artifact.to_numpy().any():
+        last = artifact.index[-1]
+        for tkr in artifact.columns[artifact.loc[last]]:
+            log.warning(
+                "MLI: dropping %s on %s, %+.0f%% in one session -- suspected "
+                "unadjusted corporate action, not a market move.",
+                tkr, last.date(), float(ret.loc[last, tkr]) * 100.0)
+    member = member & ~artifact
 
     n = member.sum(axis=1)
     daily = ret.where(member)

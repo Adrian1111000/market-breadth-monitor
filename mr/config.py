@@ -85,11 +85,41 @@ BIG_COUNT = 300            # a >=300 reading on either side is a "thrust" day
 # Leadership index (MLI)
 # --------------------------------------------------------------------------- #
 
-MLI_MIN_PRICE = 10.0
-MLI_MIN_DOLLAR_VOL = 10_000_000     # 50-day average dollar volume
-MLI_RS_PERCENTILE = 70              # 126-day return percentile within universe
-MLI_RS_LOOKBACK = 126
-MLI_TREND_LOOKBACK = 21             # 200D MA must be rising over this window
+# Membership follows the reference monitor's "momentum stock" definition:
+#   common stock + ADR (no ETFs) · close >= $5 · same-day turnover >= $5m
+#   · quarterly gain >= 20%
+#
+# Note what is NOT in it. There are no moving-average filters, and the relative
+# strength test is an ABSOLUTE threshold (up 20% over a quarter) rather than a
+# rank within the universe. Those are different questions: a percentile asks
+# "is this among the strongest names today", which in a falling market still
+# admits the best of a bad lot, while an absolute gain asks "has this actually
+# gone up", which empties out when nothing has. The count therefore falls to
+# zero in a bear market by design, and that is the signal.
+MLI_MIN_PRICE = float(os.environ.get("MR_MLI_MIN_PRICE", "5"))
+
+# Same-day dollar turnover, not a rolling average. Verified against the
+# reference: a 20- or 50-day average shifts the base by a few dozen names.
+MLI_MIN_TURNOVER = float(os.environ.get("MR_MLI_MIN_TURNOVER", "5000000"))
+
+# "Quarterly" is 63 trading sessions. 62 or 66 move the count by ~10%, so the
+# session count matters more than it looks.
+MLI_QUARTER_LOOKBACK = int(os.environ.get("MR_MLI_QUARTER_LOOKBACK", "63"))
+MLI_MIN_QUARTER_GAIN = float(os.environ.get("MR_MLI_MIN_QUARTER_GAIN", "20"))
+
+# Sanity bound on a single session's return, in percent. A move past this is
+# not a market move, it is an unadjusted corporate action: bars are cached
+# unadjusted and split-corrected in memory from Polygon's splits endpoint, so
+# any split that endpoint has not published yet shows up as a price cliff.
+#
+# This is not hypothetical. On 2026-09-11 GOSS printed 0.16, 0.14, then 10.73 --
+# an unreported reverse split reading as +7,435% in one day. One such name in a
+# 416-name equal-weight mean moved the MLI from +1.05% to +18.92%.
+#
+# Names breaching the bound are dropped from the aggregate and logged by name,
+# never silently swallowed: a real name disappearing from the index is
+# something to notice, not to hide.
+MLI_MAX_DAILY_MOVE = float(os.environ.get("MR_MLI_MAX_DAILY_MOVE", "100"))
 
 # --------------------------------------------------------------------------- #
 # Index / ETF tickers

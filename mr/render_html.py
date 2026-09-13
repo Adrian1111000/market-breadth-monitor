@@ -918,9 +918,10 @@ def render(ctx: dict) -> str:
 
   <footer>
     Generated {m['generated']} from Polygon end-of-day data.
-    MLI membership: price ≥ ${C.MLI_MIN_PRICE:.0f}, 50-day average dollar volume ≥
-    ${C.MLI_MIN_DOLLAR_VOL/1e6:.0f}m, above a rising 200-day MA and the 50-day MA,
-    {C.MLI_RS_LOOKBACK}-day return in the top {100-C.MLI_RS_PERCENTILE:.0f}% of the universe.
+    MLI membership: price ≥ ${C.MLI_MIN_PRICE:.0f}, same-day turnover ≥
+    ${C.MLI_MIN_TURNOVER/1e6:.0f}m, and a gain of ≥ {C.MLI_MIN_QUARTER_GAIN:.0f}% over
+    {C.MLI_QUARTER_LOOKBACK} sessions. Membership is rebuilt from scratch each session;
+    the threshold is absolute, not a rank, so the count can fall to zero.
     Distribution day: close down ≥ {C.DD_MIN_DROP_PCT:.2f}% on rising volume,
     cancelled once the index closes {C.DD_EXPIRE_RALLY_PCT:.0f}% above it.
     Historical rows use the current active-ticker list, so names delisted since
