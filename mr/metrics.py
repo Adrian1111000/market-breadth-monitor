@@ -303,7 +303,7 @@ def group_rs(panel: dict[str, pd.DataFrame], mapping: dict[str, str],
         if len(s) < 70:
             continue
         row = {"ticker": tkr, "name": label, "close": float(s.iloc[-1])}
-        for win, key in ((1, "d1"), (5, "w1"), (21, "m1"), (63, "m3")):
+        for win, key in ((1, "d1"), (5, "w1"), (21, "m1"), (63, "m3"), (126, "m6")):
             row[key] = float(s.iloc[-1] / s.iloc[-1 - win] - 1) * 100 if len(s) > win else np.nan
         if bench is not None:
             b = bench.dropna()
@@ -317,6 +317,81 @@ def group_rs(panel: dict[str, pd.DataFrame], mapping: dict[str, str],
     if not df.empty:
         df = df.sort_values("m1", ascending=False).reset_index(drop=True)
     return df
+
+
+LEADERBOARD_WINDOWS = (
+    ("d1", "1 day", 1),
+    ("w1", "1 week", 5),
+    ("m1", "1 month", 21),
+    ("m3", "3 months", 63),
+    ("m6", "6 months", 126),
+)
+
+
+def etf_leaderboard(panel: dict[str, pd.DataFrame],
+                    groups: dict[str, dict[str, str]],
+                    n: int = 3, benchmark: str = "SPY") -> dict:
+    """Best and worst performing ETFs over each window.
+
+    `groups` maps a group label to its ticker->name mapping, so sectors and
+    themes are ranked in one combined table while each row still remembers which
+    group it came from -- a theme fund outrunning every sector is exactly the
+    kind of thing worth seeing, and separate tables would hide it.
+
+    Windows are counted in TRADING SESSIONS, not calendar days: 21 sessions for
+    a month, 126 for six. A calendar-day lookback would silently vary its own
+    length with holidays and weekends.
+
+    An ETF is ranked over a window only if it has that much history. The newest
+    fund in the universe would otherwise appear in the six-month table on the
+    strength of a much shorter run.
+    """
+    close = panel["close"]
+    bench = close[benchmark].dropna() if benchmark in close.columns else None
+
+    rows = []
+    for group, mapping in groups.items():
+        for tkr, label in mapping.items():
+            if tkr not in close.columns:
+                continue
+            srs = close[tkr].dropna()
+            if srs.empty:
+                continue
+            row = {"ticker": tkr, "name": label, "group": group,
+                   "close": float(srs.iloc[-1])}
+            for key, _, win in LEADERBOARD_WINDOWS:
+                row[key] = (float(srs.iloc[-1] / srs.iloc[-1 - win] - 1) * 100
+                            if len(srs) > win else np.nan)
+            rows.append(row)
+
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return {}
+
+    out = {}
+    for key, label, win in LEADERBOARD_WINDOWS:
+        ranked = df.dropna(subset=[key]).sort_values(key, ascending=False)
+        if ranked.empty:
+            continue
+
+        spy = np.nan
+        if bench is not None and len(bench) > win:
+            spy = float(bench.iloc[-1] / bench.iloc[-1 - win] - 1) * 100
+
+        def pack(frame):
+            return [{"ticker": r.ticker, "name": r.name, "group": r.group,
+                     "ret": float(getattr(r, key)),
+                     "vs_spy": (float(getattr(r, key)) - spy
+                                if np.isfinite(spy) else None)}
+                    for r in frame.itertuples()]
+
+        out[key] = {
+            "label": label, "sessions": win, "universe": len(ranked),
+            "spy": spy if np.isfinite(spy) else None,
+            "best": pack(ranked.head(n)),
+            "worst": pack(ranked.tail(n).iloc[::-1]),
+        }
+    return out
 
 
 # --------------------------------------------------------------------------- #

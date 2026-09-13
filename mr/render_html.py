@@ -143,6 +143,22 @@ td{padding:5px 9px; text-align:right; white-space:nowrap;
    border-bottom:1px solid var(--grid)}
 tbody tr:hover td{background:var(--panel-2)}
 .monitor td:first-child{font-weight:600; color:var(--ink-2)}
+.leadgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:12px}
+.leadcard{border:1px solid var(--rule);border-radius:8px;padding:11px 12px 9px}
+.leadcard .hd{display:flex;justify-content:space-between;align-items:baseline;
+  margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--rule)}
+.leadcard .hd .w{font-weight:700;font-size:12.5px;letter-spacing:.02em}
+.leadcard .hd .bm{font-size:10.5px;color:var(--muted)}
+.leadrow{display:grid;grid-template-columns:42px 1fr auto;gap:7px;align-items:baseline;
+  padding:2.5px 0;font-size:11.5px}
+.leadrow .tk{font-weight:600}
+.leadrow .nm{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leadrow .rt{text-align:right;font-weight:600}
+.leadrow.up .tk,.leadrow.up .rt{color:var(--up)}
+.leadrow.dn .tk,.leadrow.dn .rt{color:var(--down)}
+.leadsep{height:1px;background:var(--rule);margin:6px 0}
+.leadcard .thm{font-size:9px;color:var(--muted);border:1px solid var(--rule);
+  border-radius:3px;padding:0 3px;margin-left:4px;vertical-align:1px}
 .monitor .gsep{border-left:1px solid var(--rule)}
 
 /* heat cells: the number is always printed, so colour is never the only cue */
@@ -319,6 +335,7 @@ def build_payload(ctx: dict) -> dict:
         "dd": dd, "ftd": ftd,
         "sectors": ctx["sectors"].replace({np.nan: None}).to_dict("records"),
         "themes": ctx["themes"].replace({np.nan: None}).to_dict("records"),
+        "leaderboard": ctx.get("leaderboard") or {},
     }
 
 
@@ -565,6 +582,8 @@ function rsChart(mount, data, key, label){
 rsChart($('#sectors'), D.sectors, 'rs_m1',
   'Sector one-month return relative to SPY, diverging around zero');
 
+leaderboard();
+
 /* ---------- themes ---------- */
 const th = $('#themes');
 D.themes.filter(t=>t.m1!=null).sort((a,b)=>b.m1-a.m1).forEach(t=>{
@@ -610,6 +629,45 @@ for (const [tk,v] of Object.entries(D.dd)){
 
 /* ---------- monitor table ---------- */
 const T = m.thresholds;
+function leaderboard(){
+  const mount = $('#leaders'); if(!mount) return;
+  const L = D.leaderboard || {};
+  const keys = ['d1','w1','m1','m3','m6'];
+  mount.innerHTML = '';
+
+  for (const k of keys){
+    const w = L[k]; if(!w) continue;
+    const card = el('div','leadcard');
+
+    const hd = el('div','hd');
+    const lab = el('div','w'); lab.textContent = w.label; hd.appendChild(lab);
+    const bm = el('div','bm');
+    bm.textContent = w.spy==null ? `${w.universe} ETFs` : `SPY ${sg(w.spy,2)}%`;
+    hd.appendChild(bm);
+    card.appendChild(hd);
+
+    const row = (r, dir) => {
+      const d = el('div','leadrow '+dir);
+      const tk = el('div','tk'); tk.textContent = r.ticker;
+      const nm = el('div','nm'); nm.textContent = r.name;
+      if (r.group === 'Theme'){
+        const b = el('span','thm'); b.textContent = 'thm'; nm.appendChild(b);
+      }
+      const rt = el('div','rt num'); rt.textContent = sg(r.ret,2)+'%';
+      d.appendChild(tk); d.appendChild(nm); d.appendChild(rt);
+      d.title = r.vs_spy==null ? r.name
+              : `${r.name} — ${sg(r.ret,2)}%, ${sg(r.vs_spy,2)}% vs SPY`;
+      return d;
+    };
+
+    (w.best  || []).forEach(r => card.appendChild(row(r,'up')));
+    card.appendChild(el('div','leadsep'));
+    (w.worst || []).forEach(r => card.appendChild(row(r,'dn')));
+    mount.appendChild(card);
+  }
+  if(!mount.children.length) mount.textContent = 'Not enough history yet.';
+}
+
 function heatCount(up, dn, isUp){
   const v = isUp?up:dn, other = isUp?dn:up;
   if (v<=other) return '';
@@ -732,6 +790,16 @@ def render(ctx: dict) -> str:
       <div class="idx" id="themes"></div>
     </section>
   </div>
+
+  <section class="panel">
+    <h2>ETF leaders and laggards</h2>
+    <div class="leadgrid" id="leaders"></div>
+    <div class="legend">
+      <span><i style="background:var(--up)"></i>best three over the window</span>
+      <span><i style="background:var(--down)"></i>worst three</span>
+      <span>sectors and themes ranked together · vs SPY shown beside each return</span>
+    </div>
+  </section>
 
   <section class="panel">
     <h2>Daily monitor · last {C.TABLE_ROWS} sessions</h2>

@@ -98,6 +98,8 @@ def build(as_of: date | None = None, *, synthetic: bool = False,
         "watchlist": SCR.candidates(panel, ref),
         "sectors": M.group_rs(panel, C.SECTOR_ETFS),
         "themes": M.group_rs(panel, C.THEME_ETFS),
+        "leaderboard": M.etf_leaderboard(
+            panel, {"Sector": C.SECTOR_ETFS, "Theme": C.THEME_ETFS}),
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "synthetic": synthetic,
     }

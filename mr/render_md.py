@@ -316,6 +316,28 @@ def render(ctx: dict) -> str:
       f"green at ≥{C.REGIME_GREEN_AT}, red at ≤{C.REGIME_RED_AT} |")
     A("")
 
+    # ---- ETF leaderboard --------------------------------------------------- #
+    lb = ctx.get("leaderboard") or {}
+    if lb:
+        A("---")
+        A("")
+        A("## 🏆 ETF Leaders and Laggards")
+        A("")
+        A("Sectors and themes ranked together. Windows are trading sessions, so a "
+          "month is 21 and six months is 126.")
+        A("")
+        A("| Window | SPY | Best 3 | Worst 3 |")
+        A("|---|---:|---|---|")
+        for key in ("d1", "w1", "m1", "m3", "m6"):
+            w = lb.get(key)
+            if not w:
+                continue
+            fmt = lambda rows: " · ".join(
+                f"{r['ticker']} {r['ret']:+.1f}%" for r in rows)
+            spy = "—" if w.get("spy") is None else f"{w['spy']:+.1f}%"
+            A(f"| {w['label']} | {spy} | {fmt(w['best'])} | {fmt(w['worst'])} |")
+        A("")
+
     # ---- rotation --------------------------------------------------------- #
     sectors, themes = ctx["sectors"], ctx["themes"]
     if not sectors.empty:
