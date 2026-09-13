@@ -338,6 +338,30 @@ def render(ctx: dict) -> str:
             A(f"| {w['label']} | {spy} | {fmt(w['best'])} | {fmt(w['worst'])} |")
         A("")
 
+    # ---- ETF holdings ------------------------------------------------------ #
+    hold = ctx.get("holdings") or {}
+    if hold:
+        names = {**C.SECTOR_ETFS, **C.THEME_ETFS}
+        A("---")
+        A("")
+        A(f"## 🧬 What's Inside · top {C.HOLDINGS_TOP_N} by weight")
+        A("")
+        A("| ETF | | Largest holdings | Top 5 |")
+        A("|---|---|---|---:|")
+        for tkr in names:
+            rows = hold.get(tkr)
+            if not rows:
+                continue
+            body = " · ".join(
+                f"{r['symbol']} {r['weight']:.1f}%" for r in rows
+                if r.get("weight") is not None)
+            tot = sum(r["weight"] for r in rows if r.get("weight") is not None)
+            A(f"| **{tkr}** | {names[tkr]} | {body} | {tot:.1f}% |")
+        A("")
+        A("Weights are each fund's own published figures. Funds holding no "
+          "equities are omitted.")
+        A("")
+
     # ---- rotation --------------------------------------------------------- #
     sectors, themes = ctx["sectors"], ctx["themes"]
     if not sectors.empty:

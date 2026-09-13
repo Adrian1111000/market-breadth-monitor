@@ -101,6 +101,33 @@ regime score just scores fewer components. Roughly:
 If the key turns out to be rate limited when the config says otherwise, the
 client learns that from the first 429 and throttles itself rather than failing.
 
+## ETF leaders, laggards and holdings
+
+Two ETF views sit below the regime panel.
+
+**Leaders and laggards** ranks the sector and theme funds *together* over five
+windows -- 1 day, 1 week, 1 month, 3 months, 6 months -- showing the best three
+and worst three in each with SPY's return for the same window beside it. Windows
+are counted in trading sessions (21 for a month, 126 for six), not calendar days,
+which would silently change length with holidays. A fund is ranked over a window
+only if it has that much history, so a young fund cannot enter the six-month
+table on a shorter run. Sectors and themes share one ranking deliberately: a
+theme fund outrunning every sector is the thing worth seeing, and separate tables
+would hide it.
+
+**Largest holdings** shows each fund's top five positions by weight, with the
+combined top-five share of the fund. That last number is the point -- it is how
+concentrated the exposure actually is, and it varies enormously: roughly half the
+fund for XLY or XLE, under a tenth for the equal-weighted XBI and KRE.
+
+Holdings are the one thing here that does not come from Polygon, which has no
+ETF constituent endpoint at any tier. They come from yfinance, are cached for
+`HOLDINGS_MAX_AGE_DAYS` (7 by default, the same reasoning as the ticker
+reference -- weights drift by fractions of a percent daily), and are wrapped so
+that **any failure leaves the breadth report publishing normally** and simply
+omits the section. Breadth is the production output; this is an enrichment.
+Funds holding no equities, such as a spot bitcoin trust, are omitted.
+
 ## What gets measured
 
 **Universe** — US common stock + ADRs from Polygon's reference data (type `CS`

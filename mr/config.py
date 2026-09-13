@@ -131,6 +131,18 @@ SECTOR_ETFS = {
     "XLRE": "Real Estate",
 }
 
+# --------------------------------------------------------------------------- #
+# ETF holdings
+# --------------------------------------------------------------------------- #
+
+# How many of each fund's largest positions to show.
+HOLDINGS_TOP_N = int(os.environ.get("MR_HOLDINGS_TOP_N", "5"))
+
+# Fund weights move by fractions of a percent day to day, so refetching twenty
+# funds every morning would spend twenty network calls to change a third
+# decimal place. Same reasoning as REFERENCE_MAX_AGE_DAYS above.
+HOLDINGS_MAX_AGE_DAYS = int(os.environ.get("MR_HOLDINGS_MAX_AGE", "7"))
+
 THEME_ETFS = {
     "SMH": "Semiconductors",
     "IGV": "Software",

@@ -19,6 +19,7 @@ from . import config as C
 from . import data as D
 from . import metrics as M
 from . import regime as REG
+from . import holdings as HOLD
 from . import render_html, render_md, screen as SCR
 
 log = logging.getLogger("mr")
@@ -100,10 +101,28 @@ def build(as_of: date | None = None, *, synthetic: bool = False,
         "themes": M.group_rs(panel, C.THEME_ETFS),
         "leaderboard": M.etf_leaderboard(
             panel, {"Sector": C.SECTOR_ETFS, "Theme": C.THEME_ETFS}),
+        "holdings": _holdings_safe(),
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "synthetic": synthetic,
     }
     return ctx
+
+
+def _holdings_safe() -> dict:
+    """ETF holdings, or {} if they cannot be had.
+
+    Holdings come from outside Polygon and are an enrichment, not the product.
+    Breadth is the production output of this pipeline and must still publish if
+    the holdings source is down, rate limited or has changed its schema, so
+    every failure here degrades to an empty mapping and the report simply omits
+    the section.
+    """
+    try:
+        return HOLD.top_holdings(list(C.SECTOR_ETFS) + list(C.THEME_ETFS))
+    except Exception as exc:                                      # noqa: BLE001
+        log.warning("ETF holdings unavailable (%s: %s); the rest of the review "
+                    "is unaffected.", type(exc).__name__, str(exc)[:120])
+        return {}
 
 
 def _previous_regime(session: date) -> pd.Series | None:

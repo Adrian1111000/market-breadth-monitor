@@ -159,6 +159,21 @@ tbody tr:hover td{background:var(--panel-2)}
 .leadsep{height:1px;background:var(--rule);margin:6px 0}
 .leadcard .thm{font-size:9px;color:var(--muted);border:1px solid var(--rule);
   border-radius:3px;padding:0 3px;margin-left:4px;vertical-align:1px}
+.holdgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(218px,1fr));gap:12px}
+.holdcard{border:1px solid var(--rule);border-radius:8px;padding:10px 11px 8px}
+.holdcard .hd{display:flex;justify-content:space-between;align-items:baseline;
+  margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid var(--rule)}
+.holdcard .hd .tk{font-weight:700;font-size:12.5px}
+.holdcard .hd .nm{font-size:10px;color:var(--muted);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;margin-left:6px}
+.holdrow{display:grid;grid-template-columns:48px 1fr auto;gap:6px;align-items:center;
+  padding:2px 0;font-size:11.5px}
+.holdrow .sym{font-weight:600}
+.holdrow .bar{height:5px;border-radius:3px;background:var(--grid);overflow:hidden}
+.holdrow .bar i{display:block;height:100%;background:var(--accent,#4C72B0);border-radius:3px}
+.holdrow .wt{text-align:right;font-size:11px;color:var(--muted)}
+.holdcard .tot{margin-top:6px;padding-top:5px;border-top:1px solid var(--rule);
+  font-size:10px;color:var(--muted);display:flex;justify-content:space-between}
 .monitor .gsep{border-left:1px solid var(--rule)}
 
 /* heat cells: the number is always printed, so colour is never the only cue */
@@ -336,6 +351,8 @@ def build_payload(ctx: dict) -> dict:
         "sectors": ctx["sectors"].replace({np.nan: None}).to_dict("records"),
         "themes": ctx["themes"].replace({np.nan: None}).to_dict("records"),
         "leaderboard": ctx.get("leaderboard") or {},
+        "holdings": ctx.get("holdings") or {},
+        "etf_names": {**C.SECTOR_ETFS, **C.THEME_ETFS},
     }
 
 
@@ -583,6 +600,7 @@ rsChart($('#sectors'), D.sectors, 'rs_m1',
   'Sector one-month return relative to SPY, diverging around zero');
 
 leaderboard();
+holdingsGrid();
 
 /* ---------- themes ---------- */
 const th = $('#themes');
@@ -666,6 +684,51 @@ function leaderboard(){
     mount.appendChild(card);
   }
   if(!mount.children.length) mount.textContent = 'Not enough history yet.';
+}
+
+function holdingsGrid(){
+  const mount = $('#holdings'); if(!mount) return;
+  const H = D.holdings || {}, names = D.etf_names || {};
+  const order = Object.keys(names).filter(t => (H[t]||[]).length);
+  mount.innerHTML = '';
+
+  if(!order.length){
+    const w = $('#holdwrap');
+    if(w) w.style.display = 'none';     /* nothing to show: drop the section */
+    return;
+  }
+
+  for (const t of order){
+    const rows = H[t];
+    const card = el('div','holdcard');
+
+    const hd = el('div','hd');
+    hd.appendChild(el('div','tk', t));
+    hd.appendChild(el('div','nm', names[t] || ''));
+    card.appendChild(hd);
+
+    const mx = Math.max(...rows.map(r => r.weight || 0)) || 1;
+    for (const r of rows){
+      const d = el('div','holdrow');
+      d.appendChild(el('div','sym', r.symbol));
+      const bar = el('div','bar');
+      const fill = document.createElement('i');
+      fill.style.width = ((r.weight||0)/mx*100).toFixed(1)+'%';
+      bar.appendChild(fill);
+      d.appendChild(bar);
+      d.appendChild(el('div','wt num', r.weight==null?'—':r.weight.toFixed(1)+'%'));
+      d.title = `${r.symbol} — ${r.name} — ${r.weight}% of ${t}`;
+      card.appendChild(d);
+    }
+
+    const tot = rows.reduce((a,r)=>a+(r.weight||0),0);
+    const f = el('div','tot');
+    f.appendChild(el('span','', `top ${rows.length}`));
+    f.appendChild(el('span','num', tot.toFixed(1)+'% of fund'));
+    card.appendChild(f);
+
+    mount.appendChild(card);
+  }
 }
 
 function heatCount(up, dn, isUp){
@@ -798,6 +861,16 @@ def render(ctx: dict) -> str:
       <span><i style="background:var(--up)"></i>best three over the window</span>
       <span><i style="background:var(--down)"></i>worst three</span>
       <span>sectors and themes ranked together · vs SPY shown beside each return</span>
+    </div>
+  </section>
+
+  <section class="panel" id="holdwrap">
+    <h2>Largest holdings · top {C.HOLDINGS_TOP_N} by weight</h2>
+    <div class="holdgrid" id="holdings"></div>
+    <div class="legend">
+      <span>weights are each fund's own published percentages</span>
+      <span>bar length is the holding's weight relative to the largest in that fund</span>
+      <span>funds holding no equities (e.g. a spot bitcoin trust) are omitted</span>
     </div>
   </section>
 
