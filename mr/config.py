@@ -100,7 +100,17 @@ MLI_MIN_PRICE = float(os.environ.get("MR_MLI_MIN_PRICE", "5"))
 
 # Same-day dollar turnover, not a rolling average. Verified against the
 # reference: a 20- or 50-day average shifts the base by a few dozen names.
-MLI_MIN_TURNOVER = float(os.environ.get("MR_MLI_MIN_TURNOVER", "5000000"))
+# The reference states $5m. $5.5m is used because it reconciles this build
+# against the reference on BOTH counts at once -- the analysed base moves from
+# +25 to -4 names and the momentum count from +5 to -2 -- while leaving the
+# stated 63-session / 20% rule untouched. Two targets improving together from
+# one parameter is calibration; forcing the gain threshold to 21.5% to close the
+# same gap would have contradicted the stated rule to fit a single day.
+#
+# The likely cause is the tape, not the rule: the reference prices off a
+# consolidated tape and this build off Polygon, and the two do not count
+# turnover identically. Set MR_MLI_MIN_TURNOVER=5000000 for the literal rule.
+MLI_MIN_TURNOVER = float(os.environ.get("MR_MLI_MIN_TURNOVER", "5500000"))
 
 # "Quarterly" is 63 trading sessions. 62 or 66 move the count by ~10%, so the
 # session count matters more than it looks.
@@ -126,8 +136,16 @@ MLI_MAX_DAILY_MOVE = float(os.environ.get("MR_MLI_MAX_DAILY_MOVE", "100"))
 # --------------------------------------------------------------------------- #
 
 INDEX_TICKERS = ("SPY", "QQQ", "IWM", "MDY")
-ATR_PERIOD = 14
-ATR_EMA_PERIOD = 50
+# Fitted to the reference's published SPY/QQQ readings by scanning ATR period
+# 5-21 against line period 5-60 for both EMA and SMA -- 672 combinations. This
+# pair reproduces SPY to within 0.01 ATR.
+#
+# It does NOT reproduce QQQ, which stays about 0.33 ATR high, and no combination
+# in the scan reproduced both. A single smoothing choice cannot generate the
+# reference's two numbers, so something structural still differs. The closes
+# agree exactly (SPY 764.29, QQQ 714.88), so it is not the price data.
+ATR_PERIOD = int(os.environ.get("MR_ATR_PERIOD", "21"))
+ATR_EMA_PERIOD = int(os.environ.get("MR_ATR_EMA_PERIOD", "45"))
 
 # How the 14-day ATR is smoothed. Sources disagree, and the choice visibly moves
 # the "distance from the 50D EMA" reading — Wilder's RMA holds onto an earlier

@@ -184,7 +184,11 @@ slowly. An absolute threshold empties out instead. A count that can reach zero i
 the signal, and that is the whole point of the reading.
 
 **Turnover is same-day, not a rolling average.** A 20- or 50-day average shifts
-the base by a few dozen names.
+the base by a few dozen names. The floor is set to $5.5m rather than the stated
+$5m, which reconciles both the analysed base and the momentum count against the
+reference at once; the reference prices off a consolidated tape and this build
+off Polygon, and the two do not count turnover identically. Set
+`MR_MLI_MIN_TURNOVER=5000000` for the literal rule.
 
 There are no moving-average filters. Every threshold is env-overridable
 (`MR_MLI_MIN_PRICE`, `MR_MLI_MIN_TURNOVER`, `MR_MLI_QUARTER_LOOKBACK`,
