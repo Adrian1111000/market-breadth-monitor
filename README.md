@@ -194,6 +194,28 @@ There are no moving-average filters. Every threshold is env-overridable
 (`MR_MLI_MIN_PRICE`, `MR_MLI_MIN_TURNOVER`, `MR_MLI_QUARTER_LOOKBACK`,
 `MR_MLI_MIN_QUARTER_GAIN`).
 
+### How well it matches
+
+The turnover floor was calibrated on a single session (2026-09-11). Checked
+against the reference across every session in the history it reproduces the
+momentum count to within two names, including four days that were not used to
+fit it:
+
+| Date | Reference | This build | Diff |
+|---|---:|---:|---:|
+| 2026-09-04 | 517 | 517 | 0 |
+| 2026-09-08 | 507 | 506 | −1 |
+| 2026-09-09 | 469 | 467 | −2 |
+| 2026-09-10 | 441 | 441 | 0 |
+| 2026-09-11 | 410 | 408 | −2 |
+
+A one-parameter calibration holding to 0.4% on days it never saw is evidence the
+rule is right, not that the fit is lucky.
+
+The SPY ATR distance lands within 0.01 on two of those five sessions and within
+0.27 on the rest. **The QQQ ATR remains unreconciled** -- see the ATR note in
+`config.py`. It is left visibly wrong rather than tuned until it looks incidental.
+
 ### The corporate-action guard
 
 Bars are cached unadjusted and split-corrected in memory from Polygon's splits
