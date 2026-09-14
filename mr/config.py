@@ -136,16 +136,27 @@ MLI_MAX_DAILY_MOVE = float(os.environ.get("MR_MLI_MAX_DAILY_MOVE", "100"))
 # --------------------------------------------------------------------------- #
 
 INDEX_TICKERS = ("SPY", "QQQ", "IWM", "MDY")
-# Fitted to the reference's published SPY/QQQ readings by scanning ATR period
-# 5-21 against line period 5-60 for both EMA and SMA -- 672 combinations. This
-# pair reproduces SPY to within 0.01 ATR.
+# Fitted against the reference's published readings over five sessions, scanning
+# ATR period x ATR method x line period x EMA/SMA. A 20-period simple ATR
+# measured from a 41-day EMA reproduces SPY to a mean absolute error of 0.02.
 #
-# It does NOT reproduce QQQ, which stays about 0.33 ATR high, and no combination
-# in the scan reproduced both. A single smoothing choice cannot generate the
-# reference's two numbers, so something structural still differs. The closes
-# agree exactly (SPY 764.29, QQQ 714.88), so it is not the price data.
-ATR_PERIOD = int(os.environ.get("MR_ATR_PERIOD", "21"))
-ATR_EMA_PERIOD = int(os.environ.get("MR_ATR_EMA_PERIOD", "45"))
+# QQQ is NOT reproduced. It carries a near-constant +0.35 offset (+0.31 to +0.40
+# across the five sessions), and no shared parameter set removes it -- every
+# combination searched leaves SPY unbiased and QQQ biased by roughly the same
+# +0.35.
+#
+# The constancy is the diagnosis. A mis-specified moving average produces error
+# that swings with the price path, the way SPY's did before this fit. An offset
+# that barely moves while price moves several percent means the LINE is about
+# 0.35 ATR -- some 3.5 points, or half a percent -- too low on QQQ specifically,
+# which points at the price history rather than the formula.
+#
+# QQQ alone can be fitted almost exactly with an 85-day SMA, but five
+# observations against four free parameters is underdetermined, and a monitor
+# using a 41-day EMA for SPY and an 85-day SMA for QQQ is not a plausible rule.
+# That number would match today and drift tomorrow, so it is not used here.
+ATR_PERIOD = int(os.environ.get("MR_ATR_PERIOD", "20"))
+ATR_EMA_PERIOD = int(os.environ.get("MR_ATR_EMA_PERIOD", "41"))
 
 # How the 14-day ATR is smoothed. Sources disagree, and the choice visibly moves
 # the "distance from the 50D EMA" reading — Wilder's RMA holds onto an earlier
@@ -154,7 +165,7 @@ ATR_EMA_PERIOD = int(os.environ.get("MR_ATR_EMA_PERIOD", "45"))
 #   "wilder" — Wilder's RMA, alpha = 1/period (the classic Welles Wilder ATR)
 #   "sma"    — simple 14-day mean of true range
 #   "ema"    — standard EMA, span = period
-ATR_METHOD = os.environ.get("MR_ATR_METHOD", "wilder")
+ATR_METHOD = os.environ.get("MR_ATR_METHOD", "sma")
 
 # Seeding for the 50-day EMA. "sma" seeds from the first 50-bar mean (what most
 # charting packages do); "first" seeds from the first close (pandas' default).
