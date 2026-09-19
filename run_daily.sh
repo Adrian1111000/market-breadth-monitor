@@ -32,4 +32,14 @@ if [ -n "$LATEST_HTML" ]; then
   ln -sf "$(basename "$LATEST_HTML")" out/latest.html
   ln -sf "$(basename "$LATEST_MD")"   out/latest.md
   echo "$LATEST_HTML"
+
+  # Show the review as soon as it is built. Set MR_AUTO_OPEN=0 to suppress,
+  # which is what you want when running this from another script or over ssh.
+  #
+  # Guarded on the run having actually produced a file: opening a stale
+  # latest.html after a failed run would quietly show yesterday's numbers as if
+  # they were today's, which is worse than showing nothing.
+  if [ "${MR_AUTO_OPEN:-1}" = "1" ]; then
+    open "out/latest.html" 2>/dev/null || true
+  fi
 fi

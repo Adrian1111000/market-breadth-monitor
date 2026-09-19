@@ -15,24 +15,23 @@
   <key>WorkingDirectory</key>
   <string>__ROOT__</string>
 
-  <!-- Every weekday at 10:00 UTC.
+  <!-- Every weekday at 10:00 LOCAL time.
 
-       launchd schedules in LOCAL time, so this is written as 18:00 on a machine
-       at UTC+8 (which observes no DST, hence one entry serves the whole year).
-       If the machine moves timezone, these hours must move with it -- launchd
-       has no way to express "UTC" directly.
+       Deliberately local rather than pinned to an offset. launchd reads the
+       machine's timezone, so this follows the laptop: 10:00 in Macau today,
+       10:00 in London after the move, and it picks up BST without anyone
+       remembering to edit it in March and October.
 
-       10:00 UTC is 06:00 New York, before the opening bell, so each run covers
-       the PREVIOUS US session with roughly fourteen hours for the vendor to
-       publish it. The earlier 06:00-local schedule ran two hours after the
-       close and regularly found the session not yet available. -->
+       In the UK that lands at 09:00-10:00 New York, before or just after the
+       opening bell, so each run covers the PREVIOUS US session with a full
+       night for the vendor to publish it. -->
   <key>StartCalendarInterval</key>
   <array>
-    <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>
-    <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>
-    <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>
-    <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>
-    <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
   </array>
 
   <!-- If the Mac was asleep at 06:00, run once it wakes rather than skipping. -->
